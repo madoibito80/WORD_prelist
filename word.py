@@ -25,6 +25,45 @@ def forward(x):
 
 
 
+def clip(img):
+
+
+	black_x = [x for x in range(img.shape[1]) if sum(img[:,x,:]) < img.shape[0]*255*img.shape[2]]
+	black_y = [y for y in range(img.shape[0]) if sum(img[y,:,:]) < 255*img.shape[1]*img.shape[2]]
+
+
+	if len(black_x) != 0:
+
+		left = min(black_x)
+		right = max(black_x)
+		top = min(black_y)
+		bottom = max(black_y)
+	
+		img = img[top:bottom+1,left:right+1,:]
+
+
+
+	if img.shape[0] > img.shape[1]:
+		img_base = numpy.ones((img.shape[0],img.shape[0],3),numpy.uint8)*255
+		pad = int((img.shape[0]-img.shape[1])/2)
+		img_base[:,pad:-pad-(pad < (img.shape[0]-img.shape[1])/2.0)*1,:] = img
+
+	else:
+		img_base = numpy.ones((img.shape[1],img.shape[1],3),numpy.uint8)*255
+		pad = int((img.shape[1]-img.shape[0])/2)
+		if pad == 0:
+			img_base = img
+		else:
+			img_base[pad:-pad-(pad < (img.shape[1]-img.shape[0])/2.0)*1,:,:] = img
+
+
+
+
+	return img_base
+
+
+
+
 def main():
 
 
@@ -101,7 +140,7 @@ def main():
 
 
 		img = cv2.imread(file)
-		img = img[bottom:,left:right,:]
+		img = img[bottom:,left:right+1,:]
 
 
 		w = 500.0 / img.shape[1]
@@ -129,13 +168,13 @@ def main():
 
 		num = [img[-187:-140,31:75,:]]
 
-		num.append(img[-55:-7,31:76,:])
+		num.append(img[-55:-6,32:76,:])
 
-		num.append(img[-55:-7,125:165,:])
+		num.append(img[-55:-6,125:165,:])
 
-		num.append(img[-55:-7,213:258,:])
+		num.append(img[-55:-6,213:258,:])
 
-		num.append(img[-55:-7,305:350,:])
+		num.append(img[-55:-6,305:350,:])
 
 
 ########################################################
@@ -145,9 +184,11 @@ def main():
 
 
 		for i in range(len(num)):
-			ret,num[i] = cv2.threshold(num[i],210,255,cv2.THRESH_BINARY)
-			neiborhood8 = numpy.ones((4,4),numpy.uint8)
+			ret,num[i] = cv2.threshold(num[i],205,255,cv2.THRESH_BINARY)
+			neiborhood8 = numpy.ones((3,3),numpy.uint8)
 			num[i] = cv2.erode(num[i], neiborhood8,iterations=1)
+
+			num[i] = clip(num[i])
 		
 
 		rec = ""
@@ -158,10 +199,10 @@ def main():
 
 			num_img = cv2.resize(num[i],(28,28))
 			num_img = cv2.cvtColor(num_img, cv2.COLOR_BGR2GRAY)
-			num_img = (180 > num_img) * 1
+			num_img = (num_img < 180) * 1
 			num_img = (num_img.copy().astype(numpy.float32))
-			#imshow((num_img*100).astype(numpy.int32))
-			#show()
+#			imshow((num_img*100).astype(numpy.int32))
+#			show()
 
 
 			x = chainer.Variable(num_img.reshape(1,1,28,28))
@@ -194,3 +235,17 @@ def main():
 
 
 main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
